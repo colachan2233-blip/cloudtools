@@ -218,6 +218,7 @@
         <div class="nav-item" onclick="switchTab('probe')"><i>🛸</i> 系统探针</div>
         <div class="nav-item" onclick="switchTab('ua')"><i>📱</i> 设备分析</div>
         <div class="nav-item" onclick="switchTab('site')"><i>💓</i> 网站心跳检测</div>
+        <div class="nav-item" onclick="switchTab('burn')"><i>🔥</i> 阅后即焚</div>
 
     </div>
 
@@ -346,6 +347,31 @@
                 <div id="site-result" style="margin-top:20px; display:none;">
                     <!-- 结果卡片 -->
                 </div>
+            </div>
+        </div>
+        <div id="panel-burn" class="panel">
+            <div class="card">
+                <h2>🔥 阅后即焚 (Secret Note)</h2>
+                <p style="color:#666;">生成的链接只能访问一次，读取后服务器端数据立即永久销毁。</p>
+                <!-- 存秘密区域 -->
+                <div id="burn-write-area">
+                    <textarea id="burn-input" rows="5" placeholder="在此输入你的秘密信息..."></textarea>
+                    <button onclick="saveSecretNote()">🔒 生成一次性链接</button>
+                </div>
+                <!-- 结果展示区域 -->
+                <div id="burn-link-area" style="display:none; margin-top:20px; padding:15px; background:#e1f3d8; border:1px solid #67c23a; border-radius:6px;">
+                    <strong>🔗 秘密链接已生成：</strong>
+                    <div style="margin:10px 0; font-family:monospace; background:white; padding:10px; border:1px dashed #ccc;">
+                        <span id="burn-final-link">...</span>
+                    </div>
+                    <p style="font-size:12px; color:#666;">将此 ID 发给对方，一旦查看将立即失效。</p>
+                </div>
+                <hr style="margin:30px 0; border:0; border-top:1px dashed #ddd;">
+                <!-- 看秘密区域 (模拟接收者) -->
+                <h3>👀 查看秘密</h3>
+                <input type="text" id="burn-id-input" placeholder="输入秘密 ID (例如: a1b2c3d4)">
+                <button onclick="readSecretNote()" style="background:#ff4d4f;">🔥 查看并销毁</button>
+                <div id="burn-read-result" style="margin-top:20px; display:none; padding:20px; background:#fff1f0; border:1px solid #ffccc7; border-radius:6px;"></div>
             </div>
         </div>
         <div class="card" id="result-card" style="display:none">
@@ -599,6 +625,62 @@
             `;
         } catch(e) {
             resDiv.innerHTML = "调用失败";
+        }
+    }
+    // 6. 新功能：阅后即焚 - 存
+    // 6. 新功能：阅后即焚 - 存
+    async function saveSecretNote() {
+        const text = document.getElementById('burn-input').value;
+        if(!text) return alert("写点什么吧！");
+
+        log('SYSTEM', '正在加密上传...');
+
+        try {
+            const res = await fetch(`${MY_PROBE_API}?action=save_note`, {
+                method: 'POST',
+                body: JSON.stringify({ text: text })
+            });
+            const data = await res.json();
+
+            if(data.status === 'saved') {
+                document.getElementById('burn-link-area').style.display = 'block';
+                // 显示 ID
+                document.getElementById('burn-final-link').innerText = data.note_id;
+                log('SUCCESS', '秘密已上传 OSS');
+            } else {
+                alert('保存失败');
+            }
+        } catch(e) {
+            log('ERROR', e.message);
+        }
+    }
+
+    // 7. 新功能：阅后即焚 - 取
+    async function readSecretNote() {
+        const id = document.getElementById('burn-id-input').value;
+        const resDiv = document.getElementById('burn-read-result');
+        if(!id) return alert("请输入ID");
+
+        resDiv.style.display = 'block';
+        resDiv.innerHTML = "🔥 正在解密并销毁...";
+
+        try {
+            const res = await fetch(`${MY_PROBE_API}?action=read_note&id=${id}`);
+            const data = await res.json();
+
+            if(data.status === 'success') {
+                resDiv.innerHTML = `
+                    <h4 style="margin-top:0; color:#cf1322;">⚠️ 内容已销毁，无法再次访问</h4>
+                    <pre style="font-size:16px; white-space:pre-wrap;">${data.content}</pre>
+                `;
+                log('SUCCESS', '已读取并销毁');
+            } else {
+                resDiv.innerHTML = `❌ ${data.message}`;
+                log('WARN', '秘密不存在');
+            }
+        } catch(e) {
+            log('ERROR', e.message);
+            resDiv.innerHTML = "网络错误";
         }
     }
 </script>
