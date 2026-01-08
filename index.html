@@ -217,6 +217,7 @@
         <div class="nav-item" onclick="switchTab('audit')"><i>🧠</i> AI 代码审计</div>
         <div class="nav-item" onclick="switchTab('probe')"><i>🛸</i> 系统探针</div>
         <div class="nav-item" onclick="switchTab('ua')"><i>📱</i> 设备分析</div>
+        <div class="nav-item" onclick="switchTab('site')"><i>💓</i> 网站心跳检测</div>
 
     </div>
 
@@ -330,6 +331,20 @@
                         <strong>原始 User-Agent:</strong><br>
                         <code id="res-raw" style="color:#666; font-size:12px;">-</code>
                     </div>
+                </div>
+            </div>
+        </div>
+        <!-- === 新工具：网站存活检测 === -->
+        <div id="panel-site" class="panel">
+            <div class="card">
+                <h2>💓 网站存活与延迟检测</h2>
+                <p style="color:#666;">由云端节点发起探测，真实反映服务器连通性。</p>
+
+                <input type="text" id="site-url" placeholder="输入网址，例如 www.baidu.com">
+                <button onclick="runSiteCheck()">🩺 开始诊断</button>
+
+                <div id="site-result" style="margin-top:20px; display:none;">
+                    <!-- 结果卡片 -->
                 </div>
             </div>
         </div>
@@ -558,6 +573,33 @@
             log('ERROR', e.message);
         }
     }
+    async function runSiteCheck() {
+        const url = document.getElementById('site-url').value;
+        const resDiv = document.getElementById('site-result');
+
+        resDiv.style.display = 'block';
+        resDiv.innerHTML = '<div style="padding:15px; background:#f0f0f0; border-radius:6px;">⏳ 云端节点正在连接...</div>';
+
+        try {
+            const res = await fetch(`${MY_PROBE_API}?action=check_site&url=${encodeURIComponent(url)}`);
+            const data = await res.json();
+
+            const color = data.status === 'UP' ? '#e6fffa' : '#fff5f5';
+            const textColor = data.status === 'UP' ? '#2c7a7b' : '#c53030';
+            const icon = data.status === 'UP' ? '✅' : '❌';
+
+            resDiv.innerHTML = `
+                <div style="background:${color}; color:${textColor}; padding:20px; border-radius:8px; border:1px solid ${textColor}40;">
+                    <h3 style="margin:0 0 10px 0;">${icon} ${data.status}</h3>
+                    <div><strong>目标:</strong> ${data.url}</div>
+                    <div><strong>状态码:</strong> ${data.code}</div>
+                    <div><strong>延迟:</strong> ${data.latency_ms || '-'} ms</div>
+                    ${data.error ? `<div style="margin-top:10px; font-size:12px;">错误信息: ${data.error}</div>` : ''}
+                </div>
+            `;
+        } catch(e) {
+            resDiv.innerHTML = "调用失败";
+        }
 </script>
 
 </body>
