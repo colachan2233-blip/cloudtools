@@ -1,0 +1,16 @@
+edition: 1.0.0
+name: frontend-app
+access: default  # 这里对应你刚才设置的别名
+
+services:
+  website:
+    component: oss
+    props:
+      region: cn-beijing
+      # 👇👇👇 改这个名字！必须唯一！例如: mac-toolbox-wuqizheng-001
+      bucket: testcloudtools01
+      acl: private
+      codeUri: ./
+      website:
+        index: index.html
+        error: error.html

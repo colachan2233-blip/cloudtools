@@ -1,0 +1,42 @@
+{
+  "statefulConfig": {
+    "serviceName": "my-toolbox-service",
+    "description": "我的自定义工具箱后端服务",
+    "role": "",
+    "logConfig": {
+      "project": "",
+      "logstore": "",
+      "enableRequestMetrics": false,
+      "enableInstanceMetrics": false,
+      "logBeginRule": "None",
+      "enableCustomExtraLog": true
+    },
+    "serviceId": "b697cd50-e586-48ab-8b0f-5022f657c6de",
+    "createdTime": "2026-01-08T03:10:26Z",
+    "lastModifiedTime": "2026-01-08T05:30:54Z",
+    "vpcConfig": {
+      "vpcId": "",
+      "vSwitchIds": [],
+      "securityGroupId": "",
+      "role": null,
+      "anytunnelViaENI": null
+    },
+    "internetAccess": true,
+    "nasConfig": {
+      "userId": -1,
+      "groupId": -1,
+      "mountPoints": []
+    },
+    "ossMountConfig": {
+      "mountPoints": []
+    },
+    "vendorConfig": null,
+    "tracingConfig": {
+      "type": null,
+      "params": null,
+      "jaegerConfig": null
+    },
+    "useSLRAuthentication": false,
+    "name": "my-toolbox-service"
+  }
+}

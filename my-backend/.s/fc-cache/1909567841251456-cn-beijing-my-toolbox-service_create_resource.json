@@ -1,0 +1,6 @@
+{
+  "serviceName": "my-toolbox-service",
+  "functionNames": [
+    "my-toolbox-service/system-probe"
+  ]
+}

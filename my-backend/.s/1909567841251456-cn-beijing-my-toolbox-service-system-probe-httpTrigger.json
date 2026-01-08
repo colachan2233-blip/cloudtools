@@ -1,0 +1,26 @@
+{
+  "statefulConfig": {
+    "triggerName": "httpTrigger",
+    "description": "",
+    "triggerId": "a3fc0221-27f4-4962-b226-7671e5937e0b",
+    "sourceArn": null,
+    "triggerType": "http",
+    "invocationRole": null,
+    "qualifier": "LATEST",
+    "urlInternet": "https://system-probe-my-tool-service-mlkcelaltp.cn-beijing.fcapp.run",
+    "urlIntranet": "https://system-probe-my-tool-service-mlkcelaltp.cn-beijing-vpc.fcapp.run",
+    "triggerConfig": {
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "authType": "anonymous",
+      "disableURLInternet": false
+    },
+    "createdTime": "2026-01-08T03:10:27Z",
+    "lastModifiedTime": "2026-01-08T05:30:54Z",
+    "status": null,
+    "targetArn": null,
+    "name": "httpTrigger"
+  }
+}

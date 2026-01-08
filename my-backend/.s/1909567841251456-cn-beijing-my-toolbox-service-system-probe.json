@@ -1,0 +1,44 @@
+{
+  "statefulConfig": {
+    "functionId": "550a4c57-86ce-427e-bf95-98b7860e05e6",
+    "functionName": "system-probe",
+    "description": "系统探针工具",
+    "runtime": "python3.9",
+    "handler": "index.handler",
+    "timeout": 3,
+    "initializer": "",
+    "initializationTimeout": 3,
+    "codeSize": 1540,
+    "codeChecksum": "3575204639250801389",
+    "memorySize": 128,
+    "gpuMemorySize": null,
+    "environmentVariables": {},
+    "createdTime": "2026-01-08T03:10:27Z",
+    "lastModifiedTime": "2026-01-08T05:30:54Z",
+    "instanceConcurrency": 1,
+    "instanceSoftConcurrency": null,
+    "customContainerConfig": null,
+    "caPort": null,
+    "instanceType": "e1",
+    "layers": null,
+    "layersArnV2": null,
+    "instanceLifecycleConfig": {
+      "preFreeze": {
+        "handler": "",
+        "timeout": 3,
+        "command": null
+      },
+      "preStop": {
+        "handler": "",
+        "timeout": 3,
+        "command": null
+      }
+    },
+    "customDNS": null,
+    "customRuntimeConfig": null,
+    "customHealthCheckConfig": null,
+    "sessionAffinity": null,
+    "initializerCommand": null,
+    "name": "system-probe"
+  }
+}

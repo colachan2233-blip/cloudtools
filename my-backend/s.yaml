@@ -1,0 +1,29 @@
+# my-backend/s.yaml
+edition: 1.0.0
+name: my-backend-app
+access: default
+
+services:
+  my-probe-function:
+    component: fc
+    props:
+      region: cn-beijing
+      service:
+        name: my-toolbox-service
+        description: "我的自定义工具箱后端服务"
+      function:
+        name: system-probe
+        description: "系统探针工具"
+        runtime: python3.9
+        codeUri: ./code
+        handler: index.handler
+        memorySize: 128
+        timeout: 3
+      triggers:
+        - name: httpTrigger
+          type: http
+          config:
+            authType: anonymous
+            methods:
+              - GET
+              - POST

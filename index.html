@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serverless Cloud Console</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --primary: #007AFF;
+            --bg: #F0F2F5;
+            --terminal-bg: #1E1E1E;
+            --terminal-text: #00FF00;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* === 左侧导航 === */
+        .sidebar {
+            width: 240px;
+            background: white;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+            z-index: 10;
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: 800;
+            color: #333;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-dot {
+            width: 8px; height: 8px;
+            background: #28a745;
+            border-radius: 50%;
+            box-shadow: 0 0 5px #28a745;
+        }
+
+        .nav-item {
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: #666;
+            font-weight: 500;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-item:hover { background: #f5f5f5; color: var(--primary); }
+        .nav-item.active { background: #E3F2FD; color: var(--primary); }
+        .nav-item i { font-style: normal; width: 20px; text-align: center; margin-right: 8px; }
+
+        /* === 右侧主区域 === */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .panel { display: none; animation: fadeIn 0.3s; }
+        .panel.active { display: block; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(5px);} to { opacity:1; transform:translateY(0);} }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        h2 { margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 15px; font-size: 20px; }
+        label { font-weight: 600; font-size: 14px; color: #555; display: block; margin-bottom: 5px; }
+
+        textarea, input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            margin: 5px 0 20px 0;
+            font-family: monospace;
+        }
+
+        /* 物理仿真布局 */
+        .phy-inputs { display: flex; gap: 15px; }
+        .phy-inputs input { flex: 1; }
+
+        /* 代码审计布局 */
+        .audit-container { display: flex; gap: 20px; height: 500px; }
+        .code-editor { flex: 1; display: flex; flex-direction: column; }
+        .code-editor textarea { 
+            flex: 1; 
+            background: #fff; 
+            color: #333; 
+            resize: none; 
+            font-size: 13px; 
+            line-height: 1.5; 
+            border: 2px solid #007AFF; 
+            border-radius: 6px;
+            padding: 15px;
+            font-family: 'Consolas', monospace;
+        }
+        .audit-result { 
+            flex: 1; 
+            background: #fff; 
+            border: 1px solid #eee; 
+            border-radius: 6px; 
+            padding: 20px; 
+            overflow-y: auto; 
+            font-size: 14px; 
+            line-height: 1.6; 
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.03);
+        }
+        
+        /* Markdown 样式 */
+        .audit-result h1, .audit-result h2, .audit-result h3 { color: #333; margin-top: 20px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .audit-result strong { color: #d9534f; }
+        .audit-result code { background: #f5f5f5; padding: 2px 5px; border-radius: 3px; font-family: monospace; color: #c7254e; }
+        .audit-result pre { background: #282c34; color: #abb2bf; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        .audit-result pre code { background: none; color: inherit; }
+        .audit-result ul { padding-left: 20px; }
+        .audit-result li { margin-bottom: 5px; }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: 0.2s;
+            width: 100%;
+        }
+        button:hover { filter: brightness(1.1); }
+
+        /* 终端样式 */
+        .terminal-window {
+            background: var(--terminal-bg);
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', Courier, monospace;
+            color: var(--terminal-text);
+            font-size: 13px;
+            line-height: 1.5;
+            height: 150px;
+            overflow-y: auto;
+            border: 1px solid #333;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            margin-top: 20px;
+        }
+
+        .log-line { margin: 2px 0; display: flex; }
+        .log-time { color: #888; margin-right: 10px; min-width: 80px; }
+        .log-info { color: #4facfe; margin-right: 10px; }
+        .log-success { color: #00ff00; }
+        .log-warn { color: #ffbd2e; }
+
+        /* 通用结果框（物理/二维码用） */
+        .result-box {
+            margin-top: 20px;
+            padding: 20px;
+            background: #fff;
+            border: 1px dashed #ccc;
+            border-radius: 8px;
+            min-height: 60px;
+            word-break: break-all;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .result-box img { max-width: 300px; border-radius: 8px; border: 1px solid #eee; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        .phy-legend { margin-top: 20px; width: 100%; max-width: 300px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #eee; text-align: left; }
+        .phy-legend h3 { margin: 0 0 10px 0; font-size: 14px; color: #333; }
+        .phy-legend ul { list-style: none; padding: 0; margin: 0; }
+        .phy-legend li { display: flex; align-items: center; font-size: 13px; color: #555; margin-bottom: 8px; }
+        .phy-legend .swatch { display: inline-block; width: 16px; height: 16px; margin-right: 10px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); }
+
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="logo">
+            <div class="status-dot"></div>
+            阿里云控制台
+        </div>
+        <div class="nav-item active" onclick="switchTab('dedup')"><i>⚡</i> 文本智能去重</div>
+        <div class="nav-item" onclick="switchTab('qr')"><i>🔗</i> 云端二维码</div>
+        <div class="nav-item" onclick="switchTab('pwd')"><i>🔐</i> 安全密码生成</div>
+        <div class="nav-item" onclick="switchTab('phy')"><i>⚛️</i> 物理仿真模拟</div>
+        <div class="nav-item" onclick="switchTab('audit')"><i>🧠</i> AI 代码审计</div>
+        <div class="nav-item" onclick="switchTab('probe')"><i>🛸</i> 系统探针</div>
+    </div>
+
+    <div class="main">
+        
+        <div id="panel-dedup" class="panel active">
+            <div class="card">
+                <h2>☁️ 文本去重 (Cloud Deduplication)</h2>
+                <textarea id="inp-dedup" rows="6" placeholder="输入重复列表..."></textarea>
+                <button onclick="runCloudTask('dedup')">调用云函数</button>
+            </div>
+        </div>
+
+        <div id="panel-qr" class="panel">
+            <div class="card">
+                <h2>☁️ 矢量二维码 (Cloud QR Gen)</h2>
+                <input type="text" id="inp-qr" placeholder="输入网址或文字...">
+                <button onclick="runCloudTask('qr')">开始渲染</button>
+            </div>
+        </div>
+
+        <div id="panel-pwd" class="panel">
+            <div class="card">
+                <h2>☁️ 熵增密码 (Cloud Secrets)</h2>
+                <input type="range" id="inp-pwd-len" min="8" max="64" value="16" oninput="document.getElementById('pwd-val').innerText=this.value">
+                <span style="float:right">长度: <b id="pwd-val">16</b></span>
+                <br><br>
+                <button onclick="runCloudTask('pwd')">计算密码</button>
+            </div>
+        </div>
+
+        <div id="panel-phy" class="panel">
+            <div class="card">
+                <h2>⚛️ 2D 波动方程数值求解 (FDM Solver)</h2>
+                <p style="color:#666; font-size:14px; line-height:1.6">
+                    云端将构建 100x100 网格，利用 Numpy 求解偏微分方程：<code>∂²u/∂t² = c²∇²u</code>
+                </p>
+                <label>干扰源位置 (X, Y):</label>
+                <div class="phy-inputs">
+                    <input type="number" id="phy-x" value="0.5" step="0.1" max="1" min="0" placeholder="X">
+                    <input type="number" id="phy-y" value="0.5" step="0.1" max="1" min="0" placeholder="Y">
+                </div>
+                <label>演化时间步数: <span id="step-val">50</span></label>
+                <input type="range" id="phy-steps" min="10" max="150" value="50" oninput="document.getElementById('step-val').innerText=this.value">
+                <button onclick="runCloudTask('phy')">🚀 启动云端物理引擎</button>
+            </div>
+        </div>
+
+        <div id="panel-audit" class="panel">
+            <div class="card" style="height: 100%;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <h2>🧠 AI 智能代码审计 (Powered by Qwen-Max)</h2>
+                    <select id="audit-lang" style="width: auto; margin:0; padding: 5px 10px;">
+                        <option value="Python">Python</option>
+                        <option value="Javascript">Javascript</option>
+                        <option value="Java">Java</option>
+                        <option value="C++">C++</option>
+                    </select>
+                </div>
+                <div class="audit-container">
+                    <div class="code-editor">
+                        <label>📝 源代码输入:</label>
+                        <textarea id="audit-code" placeholder="// 请在此处粘贴需要审查的代码..."></textarea>
+                    </div>
+                    <div class="audit-result" id="audit-output">
+                        <h3>代码审计报告</h3>
+                        <div style="color:#999; margin-top:20px;">
+                            等待提交...<br>
+                            AI 架构师将从以下维度进行分析：
+                            <ul>
+                                <li>逻辑漏洞与 Bug</li>
+                                <li>性能瓶颈优化</li>
+                                <li>安全风险检测</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <br>
+                <button onclick="runCloudTask('audit')">🚀 提交给 AI 架构师审查</button>
+            </div>
+        </div>
+        <div id="panel-probe" class="panel">
+            <div class="card">
+                <h2>🛸 Serverless 系统探针 (My Own Backend)</h2>
+                <p style="color:#666; font-size:14px;">
+                    这是我独立部署的云函数。点击按钮，前端将向我的私有后端发起请求，
+                    获取当前运行环境信息。
+                </p>
+                <button onclick="runMyProbe()">🚀 启动探针</button>
+
+                <!-- 结果展示区 -->
+                <div id="probe-output" style="margin-top:20px; padding:15px; background:#1e1e1e; color:#0f0; border-radius:6px; font-family:monospace; display:none; white-space: pre-wrap;"></div>
+            </div>
+        </div>
+
+
+        <!-- === 新工具：设备分析 === -->
+        <div id="panel-ua" class="panel">
+            <div class="card">
+                <h2>📱 访客设备指纹分析</h2>
+                <p style="color:#666; font-size:14px;">
+                    后端解析 HTTP 请求头中的 User-Agent 字段，识别您的操作系统与环境。
+                </p>
+                <button onclick="runUaAnalysis()">🕵️‍♂️ 分析我的设备</button>
+
+                <div id="ua-result" style="margin-top:20px; display:none;">
+                    <div style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:10px;">
+                        <strong>操作系统:</strong> <span id="res-os" style="color:var(--primary)">-</span>
+                    </div>
+                    <div style="background:#f8f9fa; padding:15px; border-radius:8px; word-break:break-all;">
+                        <strong>原始 User-Agent:</strong><br>
+                        <code id="res-raw" style="color:#666; font-size:12px;">-</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card" id="result-card" style="display:none">
+            <h2>计算结果 (Output)</h2>
+            <div id="final-result" class="result-box"></div>
+        </div>
+
+        <div class="terminal-window" id="terminal">
+            <div class="log-line"><span class="log-time">[System]</span> <span>控制台初始化完成... 等待指令</span></div>
+            <div class="log-line"><span class="log-time">[Network]</span> <span>连接至 cn-beijing.aliyuncs.com [OK]</span></div>
+        </div>
+
+    </div>
+
+<script>
+    // 👇👇👇 你的真实 API 地址 👇👇👇
+    const API_URL = "https://text-dedup-func-mac-too-service-zepxdnfuxj.cn-beijing.fcapp.run";
+    // 👇👇👇 你的新后端 API 👇👇👇
+    const MY_PROBE_API = "https://system-probe-my-tool-service-mlkcelaltp.cn-beijing.fcapp.run";
+
+    function switchTab(id) {
+        // 1. 移除导航激活状态
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        // 2. 隐藏所有面板
+        document.querySelectorAll('.panel').forEach(el => el.classList.remove('active'));
+        
+        // 3. 激活当前面板
+        event.currentTarget.classList.add('active');
+        document.getElementById('panel-' + id).classList.add('active');
+        
+        // 🔥【关键修复】🔥
+        // 无论切到哪个 Tab，都强制隐藏底部的“通用结果框”
+        // 这样物理仿真的图就不会出现在 AI 界面，反之亦然
+        document.getElementById('result-card').style.display = 'none';
+        document.getElementById('final-result').innerHTML = ""; // 清空旧内容
+    }
+
+    function log(type, msg) {
+        const term = document.getElementById('terminal');
+        const time = new Date().toLocaleTimeString('en-US', {hour12:false}) + "." + Math.floor(Math.random()*999);
+        let colorClass = '';
+        if(type === 'INFO') colorClass = 'log-info';
+        if(type === 'SUCCESS') colorClass = 'log-success';
+        if(type === 'WARN') colorClass = 'log-warn';
+
+        const html = `<div class="log-line">
+            <span class="log-time">[${time}]</span>
+            <span class="${colorClass}">${type}</span>&nbsp;
+            <span>${msg}</span>
+        </div>`;
+        
+        term.innerHTML += html;
+        term.scrollTop = term.scrollHeight; 
+    }
+
+    async function runCloudTask(type) {
+        let payload = {};
+        
+        // 1. 组装数据
+        if(type === 'dedup') {
+            const val = document.getElementById('inp-dedup').value;
+            if(!val) return alert("请输入内容");
+            payload = { action: 'dedup', content: val };
+        } 
+        else if (type === 'qr') {
+            const val = document.getElementById('inp-qr').value;
+            if(!val) return alert("请输入内容");
+            payload = { action: 'qr', text: val };
+        } 
+        else if (type === 'pwd') {
+            const val = document.getElementById('inp-pwd-len').value;
+            payload = { action: 'password', length: val };
+        }
+        else if (type === 'phy') {
+            const x = document.getElementById('phy-x').value;
+            const y = document.getElementById('phy-y').value;
+            const steps = document.getElementById('phy-steps').value;
+            payload = { action: 'phy_wave', cx: x, cy: y, steps: steps };
+        }
+        else if (type === 'audit') {
+            const code = document.getElementById('audit-code').value;
+            const lang = document.getElementById('audit-lang').value;
+            if(!code) return alert("写点代码再审吧！");
+            payload = { action: 'audit', code: code, lang: lang };
+        }
+
+        // 2. 界面反馈 (分流处理)
+        if(type === 'audit') {
+             // AI 模式：只操作 AI 面板内的元素
+             document.getElementById('audit-output').innerHTML = "<div style='padding:20px; text-align:center;'>⏳ AI 正在逐行分析代码逻辑...<br>(可能需要 5-10 秒)</div>";
+        } else {
+             // 其他模式：显示通用结果框
+             document.getElementById('result-card').style.display = 'block';
+             document.getElementById('final-result').innerHTML = "⏳ 计算中...";
+        }
+        
+        log('SYSTEM', `初始化请求: ${type.toUpperCase()}`);
+        await new Promise(r => setTimeout(r, 200)); 
+        log('NETWORK', 'DNS 解析: ' + API_URL.split('/')[2]);
+        
+        await new Promise(r => setTimeout(r, 300));
+        
+        // 3. 发送请求
+        const startTime = Date.now();
+        try {
+            log('CLOUD', '等待实例唤醒 (Cold Start)...');
+            
+            const res = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const endTime = Date.now();
+            const duration = (endTime - startTime) / 1000;
+            const reqId = res.headers.get("x-fc-request-id") || "FC-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+
+            log('SUCCESS', `响应完成 (Status: ${res.status})`);
+            log('METRICS', `耗时: ${duration.toFixed(3)}s | RequestID: ${reqId}`);
+
+            const data = await res.json();
+
+            // 4. 处理结果 (严格分流)
+            if (data.error) {
+                log('ERROR', 'API 报错: ' + data.error);
+                alert("出错啦: " + data.error);
+                return;
+            }
+
+            // === A. 如果是 AI 审计 ===
+            if (type === 'audit') {
+                log('RENDER', '渲染 Markdown 审计报告...');
+                if (data.status === 'success') {
+                    document.getElementById('audit-output').innerHTML = marked.parse(data.data);
+                } else {
+                    document.getElementById('audit-output').innerHTML = `<span style="color:red">错误: ${data.message}</span>`;
+                }
+                // 重要：直接返回，不要碰下面的 final-result
+                return; 
+            }
+
+            // === B. 如果是其他功能 (物理/二维码等) ===
+            const resultBox = document.getElementById('final-result');
+            if (data.type === 'image') {
+                resultBox.innerHTML = `<img src="${data.result}">`;
+                if(type === 'phy') {
+                    resultBox.innerHTML += `
+                        <div class="phy-legend">
+                            <h3>🗺️ 热力图说明</h3>
+                            <ul>
+                                <li><span class="swatch" style="background: #FCFDBF;"></span> <b>亮黄</b>：能量峰值 (Peak)</li>
+                                <li><span class="swatch" style="background: #B73779;"></span> <b>紫红</b>：扩散波纹 (Ripples)</li>
+                                <li><span class="swatch" style="background: #000004;"></span> <b>黑色</b>：平静区域 (Zero)</li>
+                            </ul>
+                        </div>
+                    `;
+                }
+            } else {
+                resultBox.innerHTML = `<pre>${data.result}</pre>`;
+            }
+
+        } catch (e) {
+            log('ERROR', '网络故障: ' + e.message);
+            if(type === 'audit') {
+                document.getElementById('audit-output').innerHTML = "❌ 网络请求失败";
+            } else {
+                document.getElementById('final-result').innerHTML = "❌ 失败";
+            }
+        }
+    }
+    async function runMyProbe() {
+    const output = document.getElementById('probe-output');
+    output.style.display = 'block';
+    output.innerText = "> 正在通过加密隧道连接自定义后端...";
+
+    log('SYSTEM', '调用自定义后端: ' + MY_PROBE_API);
+
+    try {
+        const startTime = Date.now();
+
+        // 调用你自己的 API
+        const res = await fetch(MY_PROBE_API, {
+            method: 'GET' // 你的 Python 代码支持 GET
+        });
+
+        const data = await res.json();
+        const duration = Date.now() - startTime;
+
+        log('SUCCESS', `自定义后端响应成功 (${duration}ms)`);
+
+        // 格式化输出
+        output.innerHTML = `
+    ✅ 连接成功! (Status: 200)
+    ----------------------------------
+    [Server Info]
+    Runtime:   ${data.runtime}
+    Time:      ${data.server_time}
+
+    [Client Info]
+    Real IP:   ${data.client_ip}
+    Req ID:    ${data.request_id}
+    ----------------------------------
+    Message:   ${data.message}
+            `.trim();
+        } catch (e) {
+        log('ERROR', '调用失败: ' + e.message);
+        output.innerText = "❌ 连接失败，请检查 s deploy 是否成功以及 URL 是否正确。";
+        }
+    }
+    // 2. 调用设备分析
+    async function runUaAnalysis() {
+        const box = document.getElementById('ua-result');
+        box.style.display = 'block';
+        log('SYSTEM', '正在发送 HTTP Headers...');
+
+        try {
+            // 请求后端，带上 action=ua
+            const res = await fetch(`${MY_PROBE_API}?action=ua`);
+            const data = await res.json();
+
+            document.getElementById('res-os').innerText = data.os_guess;
+            document.getElementById('res-raw').innerText = data.user_agent;
+            log('SUCCESS', `识别设备: ${data.os_guess}`);
+        } catch(e) {
+            log('ERROR', e.message);
+        }
+    }
+</script>
+
+</body>
+</html>
