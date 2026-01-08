@@ -4,6 +4,7 @@ import time
 import secrets  # 密码学安全随机库
 import string
 from urllib.parse import parse_qs
+import urllib.request
 
 
 def handler(environ, start_response):
@@ -28,7 +29,6 @@ def handler(environ, start_response):
                 "runtime": "Python 3.9 (Upgraded)"
             }
 
-
         # === 功能 3: 设备指纹分析 (新增) ===
         elif action == 'ua':
             ua_string = environ.get('HTTP_USER_AGENT', 'Unknown')
@@ -51,6 +51,35 @@ def handler(environ, start_response):
                 "os_guess": os_name,
                 "browser_guess": "Chrome/Edge" if "Chrome" in ua_string else "Other"
             }
+        # === 功能 4: 网站存活检测 ===
+        elif action == 'check_site':
+            target_url = params.get('url', [''])[0]
+            if not target_url.startswith('http'):
+                target_url = 'http://' + target_url
+
+            start = time.time()
+            try:
+                # 设置 3 秒超时，只请求头部 (HEAD) 不下载内容
+                req = urllib.request.Request(target_url, method='HEAD')
+                req.add_header('User-Agent', 'Serverless-Probe/1.0')
+
+                with urllib.request.urlopen(req, timeout=3) as f:
+                    code = f.getcode()
+
+                duration = round((time.time() - start) * 1000, 2)
+                result_data = {
+                    "url": target_url,
+                    "status": "UP" if code < 400 else "DOWN",
+                    "code": code,
+                    "latency_ms": duration
+                }
+            except Exception as e:
+                result_data = {
+                    "url": target_url,
+                    "status": "ERROR",
+                    "code": 0,
+                    "error": str(e)
+                }
 
         else:
             result_data = {"error": "Unknown Action"}
@@ -64,6 +93,7 @@ def handler(environ, start_response):
         ]
         start_response(status, response_headers)
         return [json.dumps(result_data).encode('utf-8')]
+
 
     except Exception as e:
         status = '500 Internal Server Error'
